@@ -5,3 +5,5 @@ langchain_mongodb
 langchain_community
 langchain
 langchain_openai
+#to remove once we convert to openai embeddings
+langchain-nomic

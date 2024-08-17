@@ -7,7 +7,9 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema import ChatMessage
+from langchain_nomic.embeddings import NomicEmbeddings
 import requests
+
 
 class StreamHandler(BaseCallbackHandler):
     def __init__(self, container, initial_text=""):
@@ -32,7 +34,7 @@ def main():
 
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     MONGODB_ATLAS_CLUSTER_URI = st.secrets["MONGODB_ATLAS_CLUSTER_URI"]
-    print(f'mongodb uri: {MONGODB_ATLAS_CLUSTER_URI}')
+    NOMIC_API_KEY = st.secrets["NOMIC_API_KEY"]
 
     PROMPT_TEMPLATE = """
     You are knowledgeable about Elastic Path products. You can answer any questions about 
@@ -52,7 +54,9 @@ def main():
     """
 
     # Create mongo connection
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    #embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5")
+
     client = MongoClient(MONGODB_ATLAS_CLUSTER_URI)
     db_name = "langchain_db"
     collection_name = "epdocs"
