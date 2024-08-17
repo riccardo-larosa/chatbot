@@ -7,6 +7,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema import ChatMessage
+import requests
 
 class StreamHandler(BaseCallbackHandler):
     def __init__(self, container, initial_text=""):
@@ -20,6 +21,11 @@ class StreamHandler(BaseCallbackHandler):
 
 def main():
     
+    public_ip = requests.get('https://ifconfig.me').text.strip()
+
+    # Print the public IP address
+    print(f"Public IP Address: {public_ip}")
+
     # Show title and description.
     st.title("💬 Elastic Path Docs Chatbot")
 
