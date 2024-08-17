@@ -1,2 +1,7 @@
 streamlit
 openai
+pymongo
+langchain_mongodb
+langchain_community
+langchain
+langchain_openai
