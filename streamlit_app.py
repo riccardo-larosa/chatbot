@@ -32,6 +32,7 @@ def main():
 
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     MONGODB_ATLAS_CLUSTER_URI = st.secrets["MONGODB_ATLAS_CLUSTER_URI"]
+    print(f'mongodb uri: {MONGODB_ATLAS_CLUSTER_URI}')
 
     PROMPT_TEMPLATE = """
     You are knowledgeable about Elastic Path products. You can answer any questions about 
