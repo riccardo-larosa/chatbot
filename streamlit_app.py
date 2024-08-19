@@ -74,7 +74,19 @@ def main():
     # messages persist across reruns.
     if "messages" not in st.session_state:
         #st.session_state.messages = []
-        st.session_state["messages"] = [ChatMessage(role="assistant", content="How can I help you?")]
+        welcome_msg = """
+        Welcome to the Elastic Path Docs Chatbot! I can answer any questions about 
+        Commerce Manager related to:
+        Product Experience Manager also known as PXM,
+        Cart and Checkout,
+        Promotions,
+        Composer,
+        Payments and
+        Subscriptions
+        """
+        st.session_state["messages"] = [ChatMessage(role="assistant", 
+                                                    content=welcome_msg, 
+                                                    avatar="https://www.elasticpath.com/favicons/favicon.ico")]    
 
     # Display the existing chat messages via `st.chat_message`.
     for msg in st.session_state.messages:
@@ -102,7 +114,7 @@ def main():
         
         # Stream the response to the chat using `st.write_stream`, then store it in 
         # session state.
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="https://www.elasticpath.com/favicons/favicon.ico"):
             stream_handler = StreamHandler(st.empty())
             model = ChatOpenAI(temperature=0.7, api_key=OPENAI_API_KEY, model="gpt-4o", streaming=True, callbacks=[stream_handler])
             response = model.invoke(prompt_context)
