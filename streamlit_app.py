@@ -35,8 +35,11 @@ def main():
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     MONGODB_ATLAS_CLUSTER_URI = st.secrets["MONGODB_ATLAS_CLUSTER_URI"]
     NOMIC_API_KEY = st.secrets["NOMIC_API_KEY"]
+    EMBEDDINGS_TYPE = st.secrets["EMBEDDINGS_TYPE"]
+    TOP_K = st.secrets["TOP_K"]
 
     PROMPT_TEMPLATE = """
+    \n\n\033[33m--------------------------\033[0m\n\n
     You are knowledgeable about Elastic Path products. You can answer any questions about 
     Commerce Manager, 
     Product Experience Manager also known as PXM,
@@ -48,18 +51,29 @@ def main():
     Studio.
     Build any of the relative links using https://elasticpath.dev as the root
     Answer the question based only on the following context:
+    \n\033[33m--------------------------\033[0m\n
     {context}
-    ---
+    \n\033[33m--------------------------\033[0m\n
     Answer the question based on the above context: {question}
+    \n\033[33m--------------------------\033[0m\n
     """
+
+    with st.sidebar:
+        embedding_type = st.selectbox("Select a model", options=EMBEDDINGS_TYPE)
 
     # Create mongo connection
     #embeddings = OllamaEmbeddings(model="nomic-embed-text")
-    embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5")
+    if "OpenAI" in embedding_type:
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    else:
+        embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5")
 
     client = MongoClient(MONGODB_ATLAS_CLUSTER_URI)
     db_name = "langchain_db"
-    collection_name = "epdocs"
+    if "OpenAI" in embedding_type:
+        collection_name = "epdocs_openaiembeddings_2000"
+    else:
+        collection_name = "epdocs"
     atlas_collection = client[db_name][collection_name]
     vector_search_index = "vector_index"
     # Create a MongoDBAtlasVectorSearch object
@@ -102,7 +116,7 @@ def main():
         st.session_state.messages.append(ChatMessage(role="user", content=prompt))
         st.chat_message("user").write(prompt)
         
-        results = db.similarity_search_with_score(prompt, k=5)
+        results = db.similarity_search_with_score(prompt, k=TOP_K)
 
         # Generate prompt from the results
         context_text = "\n\n\033[32m--------------------------\033[0m\n\n".join([doc.page_content for doc, _score in results])
@@ -122,6 +136,9 @@ def main():
                 st.write("Answer based on the following sources:")
                 st.write(sources)
             st.session_state.messages.append(ChatMessage(role="assistant", content=response.content))
+            print("\n\n\033[34m------- RESPONSE -------------------\033[0m\n\n" + response.content)
+            print("\n\n\033[34m------- SOURCES -------------------\033[0m\n\n")
+            print(sources)
         #st.session_state.messages.append({"role": "assistant", "content": response})
 
 if __name__ == "__main__":
