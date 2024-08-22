@@ -34,6 +34,7 @@ def main():
 
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     MONGODB_ATLAS_CLUSTER_URI = st.secrets["MONGODB_ATLAS_CLUSTER_URI"]
+    print(MONGODB_ATLAS_CLUSTER_URI)
     NOMIC_API_KEY = st.secrets["NOMIC_API_KEY"]
     EMBEDDINGS_TYPE = st.secrets["EMBEDDINGS_TYPE"]
     TOP_K = st.secrets["TOP_K"]
@@ -65,15 +66,13 @@ def main():
     #embeddings = OllamaEmbeddings(model="nomic-embed-text")
     if "OpenAI" in embedding_type:
         embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        collection_name = "epdocs_openaiembeddings"
     else:
         embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5")
+        collection_name = "epdocs_nomic-embed"
 
     client = MongoClient(MONGODB_ATLAS_CLUSTER_URI)
-    db_name = "langchain_db"
-    if "OpenAI" in embedding_type:
-        collection_name = "epdocs_openaiembeddings_2000"
-    else:
-        collection_name = "epdocs"
+    db_name = "rag_db"        
     atlas_collection = client[db_name][collection_name]
     vector_search_index = "vector_index"
     # Create a MongoDBAtlasVectorSearch object

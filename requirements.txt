@@ -7,3 +7,6 @@ langchain
 langchain_openai
 #to remove once we convert to openai embeddings
 langchain-nomic
+datasets
+ragas
+nest_asyncio
