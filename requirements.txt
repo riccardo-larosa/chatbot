@@ -10,3 +10,8 @@ langchain-nomic
 datasets
 ragas
 nest_asyncio
+colorama
+# next ones are only used to import data form gsheet to huggingface
+gspread 
+oauth2client 
+dotenv

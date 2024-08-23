@@ -17,15 +17,18 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.runnables.base import RunnableSequence
 from langchain_core.output_parsers import StrOutputParser
-from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
+from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall, answer_similarity, answer_correctness
+from colorama import Fore, Back, Style
+from colorama import init as colorama_init
 
 LOAD_DB = False
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 MONGODB_ATLAS_CLUSTER_URI = st.secrets["MONGODB_ATLAS_CLUSTER_URI"]
 NOMIC_API_KEY = st.secrets["NOMIC_API_KEY"]
-EVAL_EMBEDDING_MODELS = ["text-embedding-ada-002", "text-embedding-3-small"]
-EVAL_LLM_MODELS = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo"]
+EVAL_EMBEDDING_MODELS = ["text-embedding-ada-002", "text-embedding-3-small"] # "text-embedding-3-large"
+EVAL_LLM_MODELS = ["gpt-3.5-turbo", "gpt-4o-mini","gpt-4o"] # "gpt-3.5-turbo-1106"
 DB_NAME = "ragas_evals"
+colorama_init(autoreset=True)
 openai_client = OpenAI()
 
 def split_texts(text_splitter, texts: List[str]) -> List[str]:
@@ -144,17 +147,14 @@ def main():
     docs = [item for chunk in all_chunks for item in chunk]
 
     client = MongoClient(MONGODB_ATLAS_CLUSTER_URI)
-    
     db = client[DB_NAME]
     batch_size = 128
-
-    
     
     if LOAD_DB:
         for model in EVAL_EMBEDDING_MODELS:
             embedded_docs = []
             print(f"Getting embeddings for the {model} model")
-            for i in tqdm(range(0, len(docs), batch_size)):
+            for i in tqdm(range(0, len(docs), batch_size), colour="blue", desc=f"{Fore.BLUE}Processing documents{Style.RESET_ALL}"):
                 end = min(len(docs), i + batch_size)
                 batch = docs[i:end]
                 # Generate embeddings for current batch
@@ -174,34 +174,32 @@ def main():
             collection.insert_many(embedded_docs)
             print(f"Finished inserting embeddings for the {model} model")
     
+    # Allow nested use of asyncio (used by RAGAS)
+    nest_asyncio.apply()
     
     QUESTIONS = df["question"].to_list()
     GROUND_TRUTH = df["correct_answer"].tolist()
+ 
     # ----------------- Embeddings Evaluation -----------------
     # NOTE: Before you execute the following code, make sure to create the Atlas vector indexs in the collections
+    print("\n\nEvaluating Embeddings models")
     for model in EVAL_EMBEDDING_MODELS:
         data = {"question": [], "ground_truth": [], "contexts": []}
         data["question"] = QUESTIONS
-        #print(data["question"])
         data["ground_truth"] = GROUND_TRUTH
-        #print(data["ground_truth"])
 
         retriever = get_retriever(model, 2)
         # Getting relevant documents for the evaluation dataset
-        for question in tqdm(QUESTIONS):
+        for question in tqdm(QUESTIONS,colour="blue", desc=f"{Fore.BLUE}Processing questions{Style.RESET_ALL}"):
             data["contexts"].append(
                 [doc.page_content for doc in retriever.invoke(question)]
             )
-        #print(f"contexts: {data["contexts"]}")
-        # RAGAS expects a Dataset object
         # I had to manually create the features for 'contexts' because the dataset was not being read correctly
         features = Features({
             'contexts': Sequence(Value('string')),
             'question': Value('string'),
             'ground_truth': Value('string'),
-            # other features...
         })
-
         dataset = Dataset.from_dict(data, features=features)
         # RAGAS runtime settings to avoid hitting OpenAI rate limits
         run_config = RunConfig(max_workers=4, max_wait=180)
@@ -211,32 +209,46 @@ def main():
             run_config=run_config,
             raise_exceptions=False,
         )
-        print(f"Result for the {model} model: {result}")
+        print(f"Result for the {Fore.GREEN}{model} model:{Style.RESET_ALL} {result}")
 
     # ----------------- LLM Evaluation -----------------
+    print("\n\nEvaluating LLM models")
     for model in EVAL_LLM_MODELS:
+        print(f"Getting results for the {Fore.GREEN}{model} model{Style.RESET_ALL}")
         data = {"question": [], "ground_truth": [], "contexts": [], "answer": []}
         data["question"] = QUESTIONS
         data["ground_truth"] = GROUND_TRUTH
         # Using the best embedding model from the retriever evaluation
         retriever = get_retriever("text-embedding-3-small", 2)
         rag_chain = get_rag_chain(retriever, model)
-        for question in tqdm(QUESTIONS):
+        for question in tqdm(QUESTIONS, colour="yellow", desc=f"{Fore.BLUE}Processing questions{Style.RESET_ALL}"):
             data["answer"].append(rag_chain.invoke(question))
             data["contexts"].append(
-                [doc.page_content for doc in retriever.get_relevant_documents(question)]
+                [doc.page_content for doc in retriever.invoke(question)]
             )
         # RAGAS expects a Dataset object
-        dataset = Dataset.from_dict(data)
+        
+        features = Features({
+            'contexts': Sequence(Value('string')),
+            'question': Value('string'),
+            'ground_truth': Value('string'),
+            'answer': Value('string'),
+        })
+        dataset = Dataset.from_dict(data, features=features)
+        #dataset = Dataset.from_dict(data)
         # RAGAS runtime settings to avoid hitting OpenAI rate limits
         run_config = RunConfig(max_workers=4, max_wait=180)
         result = evaluate(
             dataset=dataset,
-            metrics=[faithfulness, answer_relevancy],
+            metrics=[faithfulness, answer_relevancy, answer_similarity, answer_correctness],
             run_config=run_config,
             raise_exceptions=False,
         )
-        print(f"Result for the {model} model: {result}")
+        print(f"Result for the {Fore.GREEN}{model} model{Style.RESET_ALL}: {result}")
+        # Analyze the results with pandas DataFrame
+        df = result.to_pandas()
+        print(df.head())
+    
     return
 
 if __name__ == "__main__":
