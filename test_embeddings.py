@@ -23,7 +23,8 @@ LOAD_DB = False
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 MONGODB_ATLAS_CLUSTER_URI = st.secrets["MONGODB_ATLAS_CLUSTER_URI"]
 NOMIC_API_KEY = st.secrets["NOMIC_API_KEY"]
-EMBEDDINGS_TYPE = st.secrets["EMBEDDINGS_TYPE"]
+EVAL_EMBEDDING_MODELS = ["text-embedding-ada-002", "text-embedding-3-small"]
+EVAL_LLM_MODELS = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo"]
 DB_NAME = "ragas_evals"
 openai_client = OpenAI()
 
@@ -147,7 +148,7 @@ def main():
     db = client[DB_NAME]
     batch_size = 128
 
-    EVAL_EMBEDDING_MODELS = ["text-embedding-ada-002", "text-embedding-3-small"]
+    
     
     if LOAD_DB:
         for model in EVAL_EMBEDDING_MODELS:
@@ -176,7 +177,7 @@ def main():
     
     QUESTIONS = df["question"].to_list()
     GROUND_TRUTH = df["correct_answer"].tolist()
-    
+    # ----------------- Embeddings Evaluation -----------------
     # NOTE: Before you execute the following code, make sure to create the Atlas vector indexs in the collections
     for model in EVAL_EMBEDDING_MODELS:
         data = {"question": [], "ground_truth": [], "contexts": []}
@@ -211,7 +212,31 @@ def main():
             raise_exceptions=False,
         )
         print(f"Result for the {model} model: {result}")
-        
+
+    # ----------------- LLM Evaluation -----------------
+    for model in EVAL_LLM_MODELS:
+        data = {"question": [], "ground_truth": [], "contexts": [], "answer": []}
+        data["question"] = QUESTIONS
+        data["ground_truth"] = GROUND_TRUTH
+        # Using the best embedding model from the retriever evaluation
+        retriever = get_retriever("text-embedding-3-small", 2)
+        rag_chain = get_rag_chain(retriever, model)
+        for question in tqdm(QUESTIONS):
+            data["answer"].append(rag_chain.invoke(question))
+            data["contexts"].append(
+                [doc.page_content for doc in retriever.get_relevant_documents(question)]
+            )
+        # RAGAS expects a Dataset object
+        dataset = Dataset.from_dict(data)
+        # RAGAS runtime settings to avoid hitting OpenAI rate limits
+        run_config = RunConfig(max_workers=4, max_wait=180)
+        result = evaluate(
+            dataset=dataset,
+            metrics=[faithfulness, answer_relevancy],
+            run_config=run_config,
+            raise_exceptions=False,
+        )
+        print(f"Result for the {model} model: {result}")
     return
 
 if __name__ == "__main__":
