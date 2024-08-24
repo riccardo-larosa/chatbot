@@ -11,7 +11,9 @@ datasets
 ragas
 nest_asyncio
 colorama
+seaborn
+matplotlib
 # next ones are only used to import data form gsheet to huggingface
 gspread 
 oauth2client 
-dotenv
+#dotenv #I had to install python-dotenv
