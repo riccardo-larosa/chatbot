@@ -8,6 +8,8 @@ A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
 1. Install the requirements
 
    ```
+   $ python3 -m venv myenv
+   $ source myenv/bin/activate
    $ pip install -r requirements.txt
    ```
 
