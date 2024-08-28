@@ -38,6 +38,9 @@ def main():
     #EMBEDDINGS_TYPE = st.secrets["EMBEDDINGS_TYPE"]
     COLLECTION_NAME = st.secrets["COLLECTION_NAME"]
     TOP_K = st.secrets["TOP_K"]
+    PROMPT_BASE = ""
+
+   
 
     PROMPT_TEMPLATE = """
     \n\n\033[33m--------------------------\033[0m\n\n
@@ -50,7 +53,7 @@ def main():
     Payments
     Subscriptions,
     Studio.
-    Build any of the relative links using https://elasticpath.dev as the root
+    {prompt_base}
     Answer the question based only on the following context:
     \n\033[33m--------------------------\033[0m\n
     {context}
@@ -61,12 +64,20 @@ def main():
 
     with st.sidebar:
         #embedding_type = st.selectbox("Select a model", options=EMBEDDINGS_TYPE)
-        collection_name = st.selectbox("Select a collection", options=COLLECTION_NAME)
-        if collection_name == "rag":
-            collection_name = "rag_db"
+        collection = st.selectbox("Select a collection", options=COLLECTION_NAME)
+        if collection == "Commerce Manager":
+            collection_name = "epdocs_openaiembeddings"
+            st.write("The model you have selected will use the documentation for Commerce Manager to answer your questions.")
+            PROMPT_BASE = """
+            Build any of the relative links using https://elasticpath.dev as the root
+            """
         else:
             collection_name = "openapi_spec"
-    
+            st.write("The model you have selected will use the OpenAPI specs for Commerce Extensions (for now) to answer your questions.")
+            PROMPT_BASE = """
+            Include the complete CURL commands in your response when you can.
+            """
+     
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
     # Create mongo connection
@@ -130,7 +141,7 @@ def main():
         # Generate prompt from the results
         context_text = "\n\n\033[32m--------------------------\033[0m\n\n".join([doc.page_content for doc, _score in results])
         prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-        prompt_context = prompt_template.format(context=context_text, question=prompt)
+        prompt_context = prompt_template.format(prompt_base=PROMPT_BASE, context=context_text, question=prompt)
         print(prompt_context)
         sources =  [(doc.metadata.get("source", None), _score) for doc, _score in results]
 
