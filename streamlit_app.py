@@ -34,9 +34,9 @@ def main():
 
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     MONGODB_ATLAS_CLUSTER_URI = st.secrets["MONGODB_ATLAS_CLUSTER_URI"]
-    print(MONGODB_ATLAS_CLUSTER_URI)
     NOMIC_API_KEY = st.secrets["NOMIC_API_KEY"]
-    EMBEDDINGS_TYPE = st.secrets["EMBEDDINGS_TYPE"]
+    #EMBEDDINGS_TYPE = st.secrets["EMBEDDINGS_TYPE"]
+    COLLECTION_NAME = st.secrets["COLLECTION_NAME"]
     TOP_K = st.secrets["TOP_K"]
 
     PROMPT_TEMPLATE = """
@@ -60,16 +60,23 @@ def main():
     """
 
     with st.sidebar:
-        embedding_type = st.selectbox("Select a model", options=EMBEDDINGS_TYPE)
+        #embedding_type = st.selectbox("Select a model", options=EMBEDDINGS_TYPE)
+        collection_name = st.selectbox("Select a collection", options=COLLECTION_NAME)
+        if collection_name == "rag":
+            collection_name = "rag_db"
+        else:
+            collection_name = "openapi_spec"
+    
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
     # Create mongo connection
     #embeddings = OllamaEmbeddings(model="nomic-embed-text")
-    if "OpenAI" in embedding_type:
-        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-        collection_name = "epdocs_openaiembeddings"
-    else:
-        embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5")
-        collection_name = "epdocs_nomic-embed"
+    #if "OpenAI" in embedding_type:
+    #    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    #    collection_name = "epdocs_openaiembeddings"
+    #else:
+    #    embeddings = NomicEmbeddings(model="nomic-embed-text-v1.5")
+    #    collection_name = "epdocs_nomic-embed"
 
     client = MongoClient(MONGODB_ATLAS_CLUSTER_URI)
     db_name = "rag_db"        
@@ -82,6 +89,8 @@ def main():
         embeddings,
         index_name = vector_search_index
     )
+
+    print(db, db_name, collection_name, vector_search_index)
 
     # Create a session state variable to store the chat messages. This ensures that the
     # messages persist across reruns.
@@ -116,6 +125,7 @@ def main():
         st.chat_message("user").write(prompt)
         
         results = db.similarity_search_with_score(prompt, k=TOP_K)
+        print(results)
 
         # Generate prompt from the results
         context_text = "\n\n\033[32m--------------------------\033[0m\n\n".join([doc.page_content for doc, _score in results])
