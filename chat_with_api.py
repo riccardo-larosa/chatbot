@@ -6,7 +6,11 @@ import operator
 from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langchain_community.tools.tavily_search import TavilySearchResults
+import streamlit as st
 
+
+OPENAI_API_KEY=st.secrets["OPENAI_API_KEY"]
+TAVILY_API_KEY=st.secrets["TAVILY_API_KEY"]
 #prompt = hub.pull("wfh/llm-compiler-joiner")
 
 tool = TavilySearchResults(max_results=4) #increased number of results
@@ -69,5 +73,11 @@ model = ChatOpenAI(model="gpt-3.5-turbo")  #reduce inference cost
 abot = Agent(model, [tool], system=prompt)
 
 from IPython.display import Image
+image_data = Image(abot.graph.get_graph().draw_png())
+with open("graph.png", "wb") as f:
+    f.write(image_data.data)
+    print("Wrote graph to graph.png")
 
-Image(abot.graph.get_graph().draw_png())
+messages = [HumanMessage(content="Who is the forward of Juventus?")]
+result = abot.graph.invoke({"messages": messages})
+print(result)
