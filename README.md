@@ -19,5 +19,8 @@ A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
    $ streamlit run streamlit_app.py
    ```
 
+3. Queries to use: 
+   a. how do i create a multi location inventory resource
+   b. how do I create a loyalty program with silver, gold and platinum tiers
 ## Tests
 Uses ragas
