@@ -7,18 +7,27 @@ from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, Too
 from langchain_openai import ChatOpenAI
 from langchain_community.tools.tavily_search import TavilySearchResults
 import streamlit as st
+from langchain_core.tools import tool
 
 
 OPENAI_API_KEY=st.secrets["OPENAI_API_KEY"]
 TAVILY_API_KEY=st.secrets["TAVILY_API_KEY"]
 #prompt = hub.pull("wfh/llm-compiler-joiner")
 
-tool = TavilySearchResults(max_results=4) #increased number of results
-print(type(tool))
-print(tool.name)
+tool1 = TavilySearchResults(max_results=4) #increased number of results
+print(type(tool1))
+print(tool1.name)
+
+@tool
+def getEPAPI():
+    """Use this to find the right API endpoint for Elastic Path."""
+    return "GET https://api.elasticpath.dev/api"
+
+tools = [tool1, getEPAPI]
 
 class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
+
 
 class Agent:
 
@@ -70,14 +79,16 @@ If you need to look up some information before asking a follow up question, you 
 """
 
 model = ChatOpenAI(model="gpt-3.5-turbo")  #reduce inference cost
-abot = Agent(model, [tool], system=prompt)
+abot = Agent(model, tools, system=prompt)
 
-from IPython.display import Image
-image_data = Image(abot.graph.get_graph().draw_png())
-with open("graph.png", "wb") as f:
-    f.write(image_data.data)
-    print("Wrote graph to graph.png")
+#from IPython.display import Image, display
+#image_data = Image(abot.graph.get_graph().draw_png())
+#display(image_data)
+#with open("graph.png", "wb") as f:
+#    f.write(image_data.data)
+#    print("Wrote graph to graph.png")
 
-messages = [HumanMessage(content="Who is the forward of Juventus?")]
+messages = [HumanMessage(content="What is the Elastic Path API endpoint?")]
 result = abot.graph.invoke({"messages": messages})
 print(result)
+print(result['messages'][-1].content)
