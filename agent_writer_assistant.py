@@ -144,6 +144,13 @@ builder.add_edge("reflect", "research_critique")
 builder.add_edge("research_critique", "generate")
 graph = builder.compile(checkpointer=memory)
 
+from IPython.display import Image, display
+import os
+image_data = Image(graph.get_graph().draw_png())
+filename = os.path.splitext(os.path.basename(__file__))[0]
+with open(f"{filename}.png", "wb") as f:
+    f.write(image_data.data)
+
 thread = {"configurable": {"thread_id": "1"}}
 for s in graph.stream({
     'task': "what is the difference between langchain and langsmith",

@@ -81,12 +81,12 @@ If you need to look up some information before asking a follow up question, you 
 model = ChatOpenAI(model="gpt-3.5-turbo")  #reduce inference cost
 abot = Agent(model, tools, system=prompt)
 
-#from IPython.display import Image, display
-#image_data = Image(abot.graph.get_graph().draw_png())
-#display(image_data)
-#with open("graph.png", "wb") as f:
-#    f.write(image_data.data)
-#    print("Wrote graph to graph.png")
+from IPython.display import Image, display
+import os
+image_data = Image(abot.graph.get_graph().draw_png())
+filename = os.path.splitext(os.path.basename(__file__))[0]
+with open(f"{filename}.png", "wb") as f:
+    f.write(image_data.data)
 
 messages = [HumanMessage(content="What is the Elastic Path API endpoint?")]
 result = abot.graph.invoke({"messages": messages})
