@@ -66,7 +66,8 @@ def main():
         #embedding_type = st.selectbox("Select a model", options=EMBEDDINGS_TYPE)
         collection = st.selectbox("Select a collection", options=COLLECTION_NAME)
         if collection == "Commerce Manager":
-            collection_name = "epdocs_openaiembeddings"
+            #collection_name = "epdocs_openaiembeddings"
+            collection_name = "epdocs_prod"
             st.write("The model you have selected will use the documentation for Commerce Manager to answer your questions.")
             PROMPT_BASE = """
             Build any of the relative links using https://elasticpath.dev as the root

@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 
 ALLOW_DANGEROUS_REQUEST=True
 OPENAI_API_KEY=st.secrets["OPENAI_API_KEY"]
-ACCESS_TOKEN="e0cd4841bcc7103b90e6a3d623d6a3bf8a5511b4"
+ACCESS_TOKEN="360b167cd2a63233469f8e6ce5f02c7978d0ec1b"
 
 def auth_headers():
     return {"Authorization": f"Bearer {ACCESS_TOKEN}"}
@@ -29,7 +29,8 @@ headers = auth_headers()
 print(headers) 
 requests_wrapper = RequestsWrapper(headers=headers)
 
-with open("./openapispecs/catalog/catalog_view.yaml") as f:
+#with open("./openapispecs/catalog/catalog_view.yaml") as f:
+with open("./openapispecs/files/files.yaml") as f:
     raw_openapi_spec = yaml.load(f, Loader=yaml.Loader)
 openapi_spec = reduce_openapi_spec(raw_openapi_spec, dereference=False)
 for endpoint in openapi_spec.endpoints:
@@ -45,7 +46,7 @@ def count_tokens(s):
 print(count_tokens(yaml.dump(raw_openapi_spec)))
 print(count_tokens(yaml.dump(openapi_spec)))
 
-llm = ChatOpenAI(model_name="gpt-4o", temperature=0.0)
+llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.0)
 
 agent = planner.create_openapi_agent(
     openapi_spec,
@@ -55,7 +56,7 @@ agent = planner.create_openapi_agent(
     verbose=True,
 )
 user_query = (
-    "show me a list of all shoes"
+    "show me all the files"
 )
 #print (agent)
 
